@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: smartwaste-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=smart_waste_management
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - smartwaste-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartwaste-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/smart_waste_management
+    depends_on:
+      - mongodb
+    networks:
+      - smartwaste-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartwaste-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - smartwaste-net
+
+volumes:
+  mongodb_data:
+
+networks:
+  smartwaste-net:
+    driver: bridge
