@@ -172,7 +172,7 @@ function MainApp() {
         fontSize: '0.8rem',
         color: 'var(--text-secondary)'
       }}>
-        EcoTrack Smart Waste Management System &copy; {new Date().getFullYear()} — Built with React.js, Spring Boot & MongoDB
+        BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Built with React.js, Spring Boot & MongoDB
       </footer>
     </div>
   );

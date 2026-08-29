@@ -26,7 +26,7 @@ export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating }
           </div>
           <div>
             <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1 }}>
-              EcoTrack <span style={{ color: 'var(--accent-emerald)', fontSize: '0.8rem', fontWeight: 600 }}>IoT</span>
+              BinFlow Tracker <span style={{ color: 'var(--accent-emerald)', fontSize: '0.8rem', fontWeight: 600 }}>IoT</span>
             </h1>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Smart Waste Management</span>
           </div>
