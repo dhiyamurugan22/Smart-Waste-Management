@@ -94,52 +94,12 @@ let mockBins = [
   }
 ];
 
-let mockComplaints = [
-  {
-    id: 'cmp-1',
-    complaintCode: 'CMP-2026-001',
-    citizenName: 'Priya Sharma',
-    citizenPhone: '+91 91234 56789',
-    citizenEmail: 'priya@citizen.com',
-    title: 'Overflowing organic bin causing odor',
-    category: 'OVERFLOWING_BIN',
-    description: 'The organic waste container outside Gandhi Market has been spilling over for 2 days.',
-    locationAddress: 'Gandhi Road Market Square, Corner 3',
-    latitude: 13.0780,
-    longitude: 80.2650,
-    zone: 'Central Zone',
-    priority: 'HIGH',
-    status: 'PENDING',
-    imageUrl: 'https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=600&auto=format&fit=crop&q=60',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString()
-  },
-  {
-    id: 'cmp-2',
-    complaintCode: 'CMP-2026-002',
-    citizenName: 'Ramesh V.',
-    citizenPhone: '+91 99887 76655',
-    citizenEmail: 'ramesh@citizen.com',
-    title: 'Uncollected plastic waste in park',
-    category: 'UNCOLLECTED_WASTE',
-    description: 'Cardboard boxes and plastics left near park gazebo.',
-    locationAddress: 'Park Lane, Sector 9',
-    latitude: 13.0920,
-    longitude: 80.2820,
-    zone: 'North Zone',
-    priority: 'MEDIUM',
-    status: 'ASSIGNED',
-    assignedDriverName: 'Rajesh Kumar (Driver 1)',
-    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=60',
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-  }
-];
-
 let mockTasks = [
   {
     id: 'tsk-1',
     taskCode: 'TSK-1001',
     title: 'High Priority North Zone Pickup',
-    description: 'Clear BIN-102 Tech Park and Park Lane complaint',
+    description: 'Clear BIN-102 Tech Park and surrounding bins',
     assignedDriverName: 'Rajesh Kumar (Driver 1)',
     driverPhone: '+91 94567 89012',
     vehicleNumber: 'TN-09-WM-4421',
@@ -213,46 +173,6 @@ export const apiService = {
     }
   },
 
-  // Complaints
-  async getComplaints(userId) {
-    try {
-      const res = await apiClient.get('/complaints', { params: { userId } });
-      return res.data;
-    } catch {
-      return userId ? mockComplaints.filter(c => c.userId === userId) : [...mockComplaints];
-    }
-  },
-
-  async fileComplaint(complaintData) {
-    try {
-      const res = await apiClient.post('/complaints', complaintData);
-      return res.data;
-    } catch {
-      const newCmp = {
-        ...complaintData,
-        id: `cmp-${Date.now()}`,
-        complaintCode: `CMP-2026-${100 + mockComplaints.length + 1}`,
-        status: 'PENDING',
-        createdAt: new Date().toISOString()
-      };
-      mockComplaints.unshift(newCmp);
-      return newCmp;
-    }
-  },
-
-  async updateComplaintStatus(id, updateData) {
-    try {
-      const res = await apiClient.patch(`/complaints/${id}/status`, updateData);
-      return res.data;
-    } catch {
-      const cmp = mockComplaints.find(c => c.id === id);
-      if (cmp) {
-        Object.assign(cmp, updateData);
-      }
-      return cmp;
-    }
-  },
-
   // Tasks
   async getTasks(driverId) {
     try {
@@ -317,9 +237,6 @@ export const apiService = {
         criticalBins: critical,
         overflowingBins: overflowing,
         averageFillLevel: Math.round(mockBins.reduce((a, b) => a + b.currentFillLevel, 0) / mockBins.length),
-        totalComplaints: mockComplaints.length,
-        pendingComplaints: mockComplaints.filter(c => c.status === 'PENDING').length,
-        resolvedComplaints: mockComplaints.filter(c => c.status === 'RESOLVED').length,
         activeTasks: mockTasks.filter(t => t.status !== 'COMPLETED').length,
         completedTasks: mockTasks.filter(t => t.status === 'COMPLETED').length,
         totalWasteCollectedTons: 14.8,

@@ -10,13 +10,6 @@ export const demoProfiles = {
     avatar: '👨‍💼',
     zone: 'All Zones'
   },
-  CITIZEN: {
-    name: 'Priya Sharma',
-    email: 'priya@citizen.com',
-    role: 'CITIZEN',
-    avatar: '👩',
-    zone: 'Central Zone'
-  },
   DRIVER: {
     name: 'Rajesh Kumar',
     email: 'driver.rajesh@smartwaste.com',

@@ -4,7 +4,7 @@ import { BinMap } from '../components/BinMap';
 import { StatusBadge } from '../components/Badge';
 import { Trash2, AlertTriangle, FileText, CheckCircle2, TrendingUp, Truck, Plus } from 'lucide-react';
 
-export const AdminDashboard = ({ metrics, bins, complaints, tasks, onEmptyBin, setActiveTab }) => {
+export const AdminDashboard = ({ metrics, bins, tasks, onEmptyBin, setActiveTab }) => {
   const criticalBins = bins.filter(b => b.currentFillLevel >= 80);
 
   return (
@@ -24,8 +24,8 @@ export const AdminDashboard = ({ metrics, bins, complaints, tasks, onEmptyBin, s
           <button onClick={() => setActiveTab('bins')} className="btn btn-secondary btn-sm">
             <Plus size={16} /> Add Waste Bin
           </button>
-          <button onClick={() => setActiveTab('complaints')} className="btn btn-primary btn-sm">
-            <Truck size={16} /> Dispatch Route
+          <button onClick={() => setActiveTab('driver-portal')} className="btn btn-primary btn-sm">
+            <Truck size={16} /> Driver Tasks
           </button>
         </div>
       </div>
@@ -47,16 +47,16 @@ export const AdminDashboard = ({ metrics, bins, complaints, tasks, onEmptyBin, s
           color="rose"
         />
         <StatCard
-          title="Active Complaints"
-          value={metrics.pendingComplaints || complaints.filter(c => c.status === 'PENDING').length}
-          subtitle="Reported by citizens"
-          icon={FileText}
+          title="Active Dispatch Tasks"
+          value={metrics.activeTasks || (tasks ? tasks.filter(t => t.status !== 'COMPLETED').length : 0)}
+          subtitle="Assigned to drivers"
+          icon={Truck}
           color="amber"
         />
         <StatCard
           title="Collection Efficiency"
           value={`${metrics.efficiencyRatingPercent || 96}%`}
-          subtitle="Resolved within SLA"
+          subtitle="Optimized bin pickup rate"
           icon={CheckCircle2}
           color="emerald"
         />

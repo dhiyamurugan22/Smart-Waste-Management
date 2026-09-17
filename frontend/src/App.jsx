@@ -3,8 +3,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { BinManagementPage } from './pages/BinManagementPage';
-import { ComplaintManagementPage } from './pages/ComplaintManagementPage';
-import { CitizenReportPage } from './pages/CitizenReportPage';
 import { DriverTasksPage } from './pages/DriverTasksPage';
 import { IoTMonitorPage } from './pages/IoTMonitorPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -14,18 +12,15 @@ function MainApp() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('admin-dashboard');
   const [bins, setBins] = useState([]);
-  const [complaints, setComplaints] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [isSimulating, setIsSimulating] = useState(false);
 
   // Sync tab with role if switched
   useEffect(() => {
-    if (currentUser.role === 'CITIZEN') {
-      setActiveTab('citizen-report');
-    } else if (currentUser.role === 'DRIVER') {
+    if (currentUser.role === 'DRIVER') {
       setActiveTab('driver-portal');
-    } else if (currentUser.role === 'ADMIN' && (activeTab === 'citizen-report' || activeTab === 'driver-portal')) {
+    } else if (currentUser.role === 'ADMIN' && activeTab === 'driver-portal') {
       setActiveTab('admin-dashboard');
     }
   }, [currentUser]);
@@ -36,14 +31,12 @@ function MainApp() {
   }, []);
 
   const fetchData = async () => {
-    const [fetchedBins, fetchedComplaints, fetchedTasks, fetchedMetrics] = await Promise.all([
+    const [fetchedBins, fetchedTasks, fetchedMetrics] = await Promise.all([
       apiService.getBins(),
-      apiService.getComplaints(),
       apiService.getTasks(),
       apiService.getOverviewMetrics()
     ]);
     setBins(fetchedBins);
-    setComplaints(fetchedComplaints);
     setTasks(fetchedTasks);
     setMetrics(fetchedMetrics);
   };
@@ -71,20 +64,6 @@ function MainApp() {
     setMetrics(updatedMetrics);
   };
 
-  const handleFileComplaint = async (complaintData) => {
-    const created = await apiService.fileComplaint(complaintData);
-    setComplaints(prev => [created, ...prev]);
-    const updatedMetrics = await apiService.getOverviewMetrics();
-    setMetrics(updatedMetrics);
-  };
-
-  const handleUpdateComplaintStatus = async (complaintId, updateData) => {
-    const updated = await apiService.updateComplaintStatus(complaintId, updateData);
-    setComplaints(prev => prev.map(c => c.id === complaintId ? updated : c));
-    const updatedMetrics = await apiService.getOverviewMetrics();
-    setMetrics(updatedMetrics);
-  };
-
   const handleCreateTask = async (taskData) => {
     const created = await apiService.createTask(taskData);
     setTasks(prev => [created, ...prev]);
@@ -95,7 +74,6 @@ function MainApp() {
   const handleUpdateTaskStatus = async (taskId, status, notes, wasteKg) => {
     const updated = await apiService.updateTaskStatus(taskId, status, notes, wasteKg);
     setTasks(prev => prev.map(t => t.id === taskId ? updated : t));
-    // Also refresh bins and complaints
     fetchData();
   };
 
@@ -113,9 +91,9 @@ function MainApp() {
           <AdminDashboard
             metrics={metrics}
             bins={bins}
-            complaints={complaints}
             tasks={tasks}
             onEmptyBin={handleEmptyBin}
+            onCreateTask={handleCreateTask}
             setActiveTab={setActiveTab}
           />
         )}
@@ -125,21 +103,6 @@ function MainApp() {
             bins={bins}
             onAddBin={handleAddBin}
             onEmptyBin={handleEmptyBin}
-          />
-        )}
-
-        {activeTab === 'complaints' && (
-          <ComplaintManagementPage
-            complaints={complaints}
-            onUpdateStatus={handleUpdateComplaintStatus}
-            onCreateTask={handleCreateTask}
-          />
-        )}
-
-        {activeTab === 'citizen-report' && (
-          <CitizenReportPage
-            complaints={complaints}
-            onFileComplaint={handleFileComplaint}
           />
         )}
 

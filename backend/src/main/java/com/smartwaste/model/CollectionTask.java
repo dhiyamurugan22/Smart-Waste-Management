@@ -23,7 +23,6 @@ public class CollectionTask {
     private String title;
     private String description;
     
-    private String complaintId;
     private List<String> binIds;
     
     private String assignedDriverId;

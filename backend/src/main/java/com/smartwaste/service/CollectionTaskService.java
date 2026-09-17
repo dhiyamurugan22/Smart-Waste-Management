@@ -14,7 +14,6 @@ import java.util.Optional;
 public class CollectionTaskService {
     private final CollectionTaskRepository collectionTaskRepository;
     private final WasteBinService wasteBinService;
-    private final ComplaintService complaintService;
 
     public List<CollectionTask> getAllTasks() {
         return collectionTaskRepository.findAll();
@@ -41,13 +40,6 @@ public class CollectionTaskService {
         }
         task.setAssignedAt(LocalDateTime.now());
         
-        // If linked to complaint, set complaint to ASSIGNED
-        if (task.getComplaintId() != null && !task.getComplaintId().isEmpty()) {
-            try {
-                complaintService.updateStatus(task.getComplaintId(), "ASSIGNED", task.getAssignedDriverId(), task.getAssignedDriverName(), "Task dispatched: " + task.getTaskCode());
-            } catch (Exception ignored) {}
-        }
-        
         return collectionTaskRepository.save(task);
     }
 
@@ -59,11 +51,6 @@ public class CollectionTaskService {
             
             if ("IN_PROGRESS".equalsIgnoreCase(status) && task.getStartedAt() == null) {
                 task.setStartedAt(LocalDateTime.now());
-                if (task.getComplaintId() != null) {
-                    try {
-                        complaintService.updateStatus(task.getComplaintId(), "IN_PROGRESS", task.getAssignedDriverId(), task.getAssignedDriverName(), "Driver is on the way");
-                    } catch (Exception ignored) {}
-                }
             } else if ("COMPLETED".equalsIgnoreCase(status)) {
                 task.setCompletedAt(LocalDateTime.now());
                 // Empty the linked bins
@@ -73,12 +60,6 @@ public class CollectionTaskService {
                             wasteBinService.markEmptied(binId);
                         } catch (Exception ignored) {}
                     }
-                }
-                // Resolve linked complaint
-                if (task.getComplaintId() != null) {
-                    try {
-                        complaintService.updateStatus(task.getComplaintId(), "RESOLVED", task.getAssignedDriverId(), task.getAssignedDriverName(), "Waste collected successfully");
-                    } catch (Exception ignored) {}
                 }
             }
             return collectionTaskRepository.save(task);

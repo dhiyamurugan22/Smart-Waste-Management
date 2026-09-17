@@ -47,18 +47,6 @@ export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating }
             Bins Monitor
           </button>
           <button
-            onClick={() => setActiveTab('complaints')}
-            className={`btn btn-sm ${activeTab === 'complaints' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Complaints
-          </button>
-          <button
-            onClick={() => setActiveTab('citizen-report')}
-            className={`btn btn-sm ${activeTab === 'citizen-report' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Report Waste
-          </button>
-          <button
             onClick={() => setActiveTab('driver-portal')}
             className={`btn btn-sm ${activeTab === 'driver-portal' ? 'btn-primary' : 'btn-secondary'}`}
           >
@@ -106,7 +94,6 @@ export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating }
               }}
             >
               <option value="ADMIN" style={{ background: '#1e293b' }}>Admin / Authority</option>
-              <option value="CITIZEN" style={{ background: '#1e293b' }}>Citizen (Priya)</option>
               <option value="DRIVER" style={{ background: '#1e293b' }}>Driver (Rajesh)</option>
             </select>
           </div>
