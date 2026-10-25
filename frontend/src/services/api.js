@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { firebaseService } from '../firebase/firebaseService';
+import { isFirebaseConfigured } from '../firebase/config';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
@@ -9,6 +11,11 @@ const apiClient = axios.create({
     'Content-Type': 'application/json'
   }
 });
+
+// Seed Firebase if configured on startup
+if (isFirebaseConfigured) {
+  firebaseService.seedInitialDataIfEmpty();
+}
 
 // In-memory mock store for offline/standalone execution
 let mockBins = [
@@ -53,7 +60,7 @@ let mockBins = [
     zone: 'Central Zone',
     binType: 'ORGANIC',
     capacityLiters: 500,
-    currentFillLevel: 98.0,
+    currentFillLevel: 97.0,
     status: 'OVERFLOWING',
     temperature: 31.2,
     batteryLevel: 79,
@@ -132,6 +139,11 @@ let mockTasks = [
 export const apiService = {
   // Bins
   async getBins(zone) {
+    if (isFirebaseConfigured) {
+      const fbBins = await firebaseService.getBins(zone);
+      if (fbBins && fbBins.length > 0) return fbBins;
+    }
+
     try {
       const res = await apiClient.get('/bins', { params: { zone } });
       return res.data;
@@ -141,6 +153,11 @@ export const apiService = {
   },
 
   async createBin(binData) {
+    if (isFirebaseConfigured) {
+      const created = await firebaseService.createBin(binData);
+      if (created) return created;
+    }
+
     try {
       const res = await apiClient.post('/bins', binData);
       return res.data;
@@ -159,6 +176,11 @@ export const apiService = {
   },
 
   async emptyBin(id) {
+    if (isFirebaseConfigured) {
+      const emptied = await firebaseService.emptyBin(id);
+      if (emptied) return emptied;
+    }
+
     try {
       const res = await apiClient.post(`/bins/${id}/empty`);
       return res.data;
@@ -175,6 +197,11 @@ export const apiService = {
 
   // Tasks
   async getTasks(driverId) {
+    if (isFirebaseConfigured) {
+      const fbTasks = await firebaseService.getTasks(driverId);
+      if (fbTasks && fbTasks.length > 0) return fbTasks;
+    }
+
     try {
       const res = await apiClient.get('/tasks', { params: { driverId } });
       return res.data;
@@ -184,6 +211,11 @@ export const apiService = {
   },
 
   async createTask(taskData) {
+    if (isFirebaseConfigured) {
+      const created = await firebaseService.createTask(taskData);
+      if (created) return created;
+    }
+
     try {
       const res = await apiClient.post('/tasks', taskData);
       return res.data;
@@ -201,6 +233,11 @@ export const apiService = {
   },
 
   async updateTaskStatus(id, status, notes, wasteKg) {
+    if (isFirebaseConfigured) {
+      const updated = await firebaseService.updateTaskStatus(id, status, notes, wasteKg);
+      if (updated) return updated;
+    }
+
     try {
       const res = await apiClient.patch(`/tasks/${id}/status`, { status, notes, wasteKg });
       return res.data;
@@ -226,28 +263,54 @@ export const apiService = {
 
   // Analytics & IoT
   async getOverviewMetrics() {
-    try {
-      const res = await apiClient.get('/analytics/overview');
-      return res.data;
-    } catch {
-      const critical = mockBins.filter(b => b.currentFillLevel >= 80).length;
-      const overflowing = mockBins.filter(b => b.status === 'OVERFLOWING').length;
-      return {
-        totalBins: mockBins.length,
-        criticalBins: critical,
-        overflowingBins: overflowing,
-        averageFillLevel: Math.round(mockBins.reduce((a, b) => a + b.currentFillLevel, 0) / mockBins.length),
-        activeTasks: mockTasks.filter(t => t.status !== 'COMPLETED').length,
-        completedTasks: mockTasks.filter(t => t.status === 'COMPLETED').length,
-        totalWasteCollectedTons: 14.8,
-        co2OffsetKg: 9176,
-        treesSavedEquivalent: 251,
-        efficiencyRatingPercent: 96
-      };
+    let currentBins = mockBins;
+    let currentTasks = mockTasks;
+
+    if (isFirebaseConfigured) {
+      try {
+        const [fbBins, fbTasks] = await Promise.all([
+          firebaseService.getBins(),
+          firebaseService.getTasks()
+        ]);
+        if (fbBins) currentBins = fbBins;
+        if (fbTasks) currentTasks = fbTasks;
+      } catch (e) {
+        console.warn("Metrics fallback:", e);
+      }
+    } else {
+      try {
+        const res = await apiClient.get('/analytics/overview');
+        return res.data;
+      } catch {
+        // use mockBins / mockTasks
+      }
     }
+
+    const critical = currentBins.filter(b => (b.currentFillLevel || 0) >= 80).length;
+    const overflowing = currentBins.filter(b => b.status === 'OVERFLOWING').length;
+    const completedTasks = currentTasks.filter(t => t.status === 'COMPLETED').length;
+    const totalWasteCollectedTons = Number(((completedTasks * 350) / 1000 + 12.4).toFixed(1));
+
+    return {
+      totalBins: currentBins.length,
+      criticalBins: critical,
+      overflowingBins: overflowing,
+      averageFillLevel: currentBins.length === 0 ? 0 : Math.round(currentBins.reduce((a, b) => a + (b.currentFillLevel || 0), 0) / currentBins.length),
+      activeTasks: currentTasks.filter(t => t.status !== 'COMPLETED').length,
+      completedTasks: completedTasks,
+      totalWasteCollectedTons,
+      co2OffsetKg: Math.round(totalWasteCollectedTons * 620),
+      treesSavedEquivalent: Math.round(totalWasteCollectedTons * 17),
+      efficiencyRatingPercent: Math.max(90, 100 - critical * 3)
+    };
   },
 
   async triggerIoTTick() {
+    if (isFirebaseConfigured) {
+      const updated = await firebaseService.triggerIoTTick();
+      if (updated && updated.length > 0) return updated;
+    }
+
     try {
       const res = await apiClient.post('/iot/simulate');
       return res.data;

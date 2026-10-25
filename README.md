@@ -1,205 +1,39 @@
-♻️ Smart Waste Management System
- 
-A Smart Waste Management System is a web-based application designed to improve waste collection and management using IoT technology. The system enables authorities to monitor smart bins, manage collection routes, and track vehicle dispatch efficiently.
- 
-📌 Project Overview
- 
-Traditional waste management systems often depend on manual monitoring. This can lead to overflowing bins, delayed collection, and inefficient waste disposal.
- 
-The Smart Waste Management System provides a centralized platform where:
- 
-- 🗑️ Waste bins can be monitored based on real-time IoT sensor fill levels.
-- 🚛 Authorities can assign and manage collection routes for drivers.
-- 📍 Waste bin locations and telemetry are tracked on interactive maps.
-- 📊 Authorities can analyze waste generation metrics and environmental impacts.
- 
-🎯 Objectives
- 
-- Reduce improper waste disposal.
-- Improve waste collection efficiency through IoT automation.
-- Help authorities monitor bin fill levels and maintenance requirements.
-- Reduce overflowing waste bins with real-time alerts.
-- Maintain digital records of bin telemetry and collection activities.
-- Promote a cleaner and healthier environment.
- 
-✨ Key Features
- 
-🏢 Authority/Admin & Driver Operations
- 
-Authorities and drivers can:
- 
-- Monitor real-time bin statuses (Fill Level, Temperature, Battery).
-- View live sensor maps with location pins.
-- Assign and execute collection tasks for drivers.
-- Trigger simulated IoT telemetry updates.
-- Track environmental impact analytics (CO₂ offset, waste diverted).
- 
-🗑️ Waste Monitoring
- 
-The system maintains real-time information such as:
- 
-- Bin ID
-- Location
-- Fill level (%)
-- Status (EMPTY, LOW, MEDIUM, FULL, OVERFLOWING)
-- Battery level & sensor temperature
-- Last collection timestamp
- 
-🏗️ System Architecture
- 
-                  ┌──────────────────┐
-                  │  Authority/Driver│
-                  └────────┬─────────┘
-                           │
-                           ▼
-                  ┌──────────────────┐
-                  │  React Frontend  │
-                  └────────┬─────────┘
-                           │
-                        REST API
-                           │
-                           ▼
-                  ┌──────────────────┐
-                  │  Spring Boot     │
-                  │     Backend      │
-                  └────────┬─────────┘
-                           │
-                           ▼
-                  ┌──────────────────┐
-                  │     MongoDB      │
-                  │    Database      │
-                  └──────────────────┘
- 
-🛠️ Technology Stack
- 
-Frontend
- 
-- React.js
-- HTML5
-- CSS3
-- JavaScript
-- Axios
- 
-Backend
- 
-- Java
-- Spring Boot
-- Spring Web
-- Spring Data MongoDB
-- REST API
- 
-Database
- 
-- MongoDB
- 
-Development Tools
- 
-- Visual Studio Code
-- IntelliJ IDEA / Eclipse
-- MongoDB Compass
-- Git
-- GitHub
- 
-📂 Project Structure
- 
-smart-waste-management/
-│
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── components/
-│       ├── pages/
-│       ├── services/
-│       ├── App.jsx
-│       └── main.jsx
-│
-├── backend/
-│   └── src/
-│       └── main/
-│           └── java/
-│               └── com/
-│                   └── smartwaste/
-│                       ├── config/
-│                       ├── controller/
-│                       ├── service/
-│                       ├── repository/
-│                       ├── model/
-│                       └── SmartWasteApplication.java
-│
-├── README.md
-└── .gitignore
- 
-🔄 System Workflow
- 
-IoT Sensors / Authorities
-  │
-  ▼
-Monitor Fill Levels
-  │
-  ▼
-Automated Critical Bin Detection
-  │
-  ▼
-Task Assigned to Driver
-  │
-  ▼
-Waste Collection Executed
-  │
-  ▼
-Bin Reset & Analytics Updated
- 
-🗃️ Main Data Collections
- 
-Waste Bins
- 
-binId
-location
-currentFillLevel
-status
-temperature
-batteryLevel
-lastCollectedAt
- 
-Collection Tasks
- 
-taskId
-assignedDriverName
-vehicleNumber
-targetZone
-status
-assignedAt
-completedAt
- 
-🌱 Benefits
- 
-- Automated route optimization
-- Faster waste collection response
-- Real-time IoT sensor telemetry
-- Reduced fuel consumption & CO₂ emissions
-- Improved municipal resource allocation
- 
-🔗 API Communication
- 
-The React frontend communicates with the Spring Boot backend through REST APIs:
- 
-GET    /api/bins
-POST   /api/bins
-POST   /api/bins/{id}/empty
- 
-GET    /api/tasks
-POST   /api/tasks
-PATCH  /api/tasks/{id}/status
- 
-GET    /api/analytics/overview
-POST   /api/iot/simulate
- 
-👥 Team
- 
-Smart Waste Management System
- 
-Developed as an academic software engineering project to provide a technology-driven solution for efficient waste management.
- 
-📄 License
- 
-This project is developed for educational and academic purposes.
- 
+# ♻️ Smart Waste Management System (BinFlow Tracker)
+
+A modern, real-time IoT Smart Waste Management web application built with **React**, **Leaflet Maps**, and **Google Firebase (Cloud Firestore)**.
+
+---
+
+## 🚀 How to Run the Website (Single Command)
+
+From this folder, run:
+
+```bash
+npm run dev
+```
+
+Then open your browser at **`http://localhost:5173`**. That's all!
+
+---
+
+## 🗄️ Database Setup (Firebase Cloud Firestore)
+
+You don't need to install or run any local databases. The website connects directly to **Google Cloud Firestore**:
+
+1. Open the website at `http://localhost:5173`.
+2. In the top navbar, click **`⚡ Connect DB`**.
+3. Paste your Firebase Web configuration from the [Firebase Console](https://console.firebase.google.com/) and click **"Save & Connect Live"**.
+4. The website will automatically:
+   - Connect live to your Firestore database.
+   - Automatically seed initial sample bins and dispatch tasks.
+   - Update in real-time across all browser windows when bins are emptied or simulated.
+
+---
+
+## ✨ Features
+
+- 🗺️ **Interactive Leaflet IoT Map**: Live GPS color-coded markers for waste bins (CartoDB tiles, 100% free with no API keys needed).
+- 📊 **Real-time IoT Telemetry**: Simulates sensor readings (fill level %, temperature °C, battery %).
+- 🚛 **Driver Dispatch Portal**: Assign, track, and complete collection routes.
+- 📈 **Environmental Analytics**: Live CO₂ offset, trees saved equivalent, and efficiency rating calculations.
+- ⚡ **Offline Demo Mode**: Works seamlessly right out of the box even before connecting Firebase.

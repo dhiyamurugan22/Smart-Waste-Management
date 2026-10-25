@@ -7,6 +7,9 @@ import { DriverTasksPage } from './pages/DriverTasksPage';
 import { IoTMonitorPage } from './pages/IoTMonitorPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { apiService } from './services/api';
+import { firebaseService } from './firebase/firebaseService';
+import { isFirebaseConfigured } from './firebase/config';
+import { FirebaseModal } from './components/FirebaseModal';
 
 function MainApp() {
   const { currentUser } = useAuth();
@@ -15,6 +18,7 @@ function MainApp() {
   const [tasks, setTasks] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
 
   // Sync tab with role if switched
   useEffect(() => {
@@ -28,6 +32,28 @@ function MainApp() {
   // Initial load
   useEffect(() => {
     fetchData();
+
+    // Setup real-time listeners if Firebase is configured
+    if (isFirebaseConfigured) {
+      const unsubBins = firebaseService.subscribeBins((liveBins) => {
+        if (liveBins && liveBins.length > 0) {
+          setBins(liveBins);
+          apiService.getOverviewMetrics().then(setMetrics);
+        }
+      });
+
+      const unsubTasks = firebaseService.subscribeTasks((liveTasks) => {
+        if (liveTasks && liveTasks.length > 0) {
+          setTasks(liveTasks);
+          apiService.getOverviewMetrics().then(setMetrics);
+        }
+      });
+
+      return () => {
+        unsubBins();
+        unsubTasks();
+      };
+    }
   }, []);
 
   const fetchData = async () => {
@@ -84,6 +110,12 @@ function MainApp() {
         setActiveTab={setActiveTab}
         onSimulateTick={handleSimulateTick}
         isSimulating={isSimulating}
+        onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
+      />
+
+      <FirebaseModal
+        isOpen={isFirebaseModalOpen}
+        onClose={() => setIsFirebaseModalOpen(false)}
       />
 
       <main style={{ flex: 1 }}>
@@ -135,7 +167,7 @@ function MainApp() {
         fontSize: '0.8rem',
         color: 'var(--text-secondary)'
       }}>
-        BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Built with React.js, Spring Boot & MongoDB
+        BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Powered by React.js & Firebase Cloud Firestore
       </footer>
     </div>
   );
