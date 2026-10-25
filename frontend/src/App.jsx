@@ -9,7 +9,6 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { apiService } from './services/api';
 import { firebaseService } from './firebase/firebaseService';
 import { isFirebaseConfigured } from './firebase/config';
-import { FirebaseModal } from './components/FirebaseModal';
 
 function MainApp() {
   const { currentUser } = useAuth();
@@ -18,7 +17,6 @@ function MainApp() {
   const [tasks, setTasks] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [isSimulating, setIsSimulating] = useState(false);
-  const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
 
   // Sync tab with role if switched
   useEffect(() => {
@@ -126,12 +124,6 @@ function MainApp() {
         setActiveTab={setActiveTab}
         onSimulateTick={handleSimulateTick}
         isSimulating={isSimulating}
-        onOpenFirebaseModal={() => setIsFirebaseModalOpen(true)}
-      />
-
-      <FirebaseModal
-        isOpen={isFirebaseModalOpen}
-        onClose={() => setIsFirebaseModalOpen(false)}
       />
 
       <main style={{ flex: 1 }}>
@@ -185,7 +177,7 @@ function MainApp() {
         fontSize: '0.8rem',
         color: 'var(--text-secondary)'
       }}>
-        BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Powered by React.js & Firebase Cloud Firestore
+        BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Municipal Environmental Operations Platform
       </footer>
     </div>
   );

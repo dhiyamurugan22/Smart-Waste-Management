@@ -113,7 +113,16 @@ export const BinManagementPage = ({ bins, onAddBin, onEmptyBin, onDeleteBin, onC
             </tr>
           </thead>
           <tbody>
-            {filteredBins.map(bin => {
+            {filteredBins.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  <Trash2 size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                  <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>No Smart Bins Deployed Yet</p>
+                  <p style={{ fontSize: '0.85rem', margin: 0 }}>Click "+ Deploy New Smart Bin" above to add your first real smart bin!</p>
+                </td>
+              </tr>
+            ) : (
+              filteredBins.map(bin => {
               const getFillClass = (fill) => {
                 if (fill >= 95) return 'overflowing';
                 if (fill >= 80) return 'full';
@@ -189,7 +198,7 @@ export const BinManagementPage = ({ bins, onAddBin, onEmptyBin, onDeleteBin, onC
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

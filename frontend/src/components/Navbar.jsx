@@ -1,9 +1,8 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trash2, UserCheck, RefreshCw, Radio, Database } from 'lucide-react';
-import { isFirebaseConfigured } from '../firebase/config';
+import { Trash2, UserCheck, RefreshCw, Radio } from 'lucide-react';
 
-export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating, onOpenFirebaseModal }) => {
+export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating }) => {
   const { currentUser, switchRole } = useAuth();
 
   return (
@@ -67,27 +66,8 @@ export const Navbar = ({ activeTab, setActiveTab, onSimulateTick, isSimulating, 
           </button>
         </div>
 
-        {/* Controls: Database Status, Live IoT Tick & Role Switcher */}
+        {/* Controls: Live IoT Telemetry & Role Switcher */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button
-            onClick={onOpenFirebaseModal}
-            className="btn btn-sm"
-            style={{
-              fontSize: '0.78rem',
-              gap: '0.35rem',
-              background: isFirebaseConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-              color: isFirebaseConfigured ? '#34d399' : '#fbbf24',
-              border: `1px solid ${isFirebaseConfigured ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
-              display: 'flex',
-              alignItems: 'center',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-            title="Configure Cloud Firestore Database"
-          >
-            <Database size={13} />
-            {isFirebaseConfigured ? 'Cloud DB' : 'Connect DB'}
-          </button>
 
           <button
             onClick={onSimulateTick}

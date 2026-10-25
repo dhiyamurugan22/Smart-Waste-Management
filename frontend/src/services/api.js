@@ -17,131 +17,16 @@ if (isFirebaseConfigured) {
   firebaseService.seedInitialDataIfEmpty();
 }
 
-// In-memory mock store for offline/standalone execution
-let mockBins = [
-  {
-    id: 'bin-1',
-    binCode: 'BIN-101',
-    locationName: 'City Center Mall - Main Entrance',
-    latitude: 13.0827,
-    longitude: 80.2707,
-    zone: 'Central Zone',
-    binType: 'GENERAL',
-    capacityLiters: 500,
-    currentFillLevel: 92.0,
-    status: 'OVERFLOWING',
-    temperature: 27.4,
-    batteryLevel: 94,
-    requiresMaintenance: false,
-    lastCollectedAt: new Date(Date.now() - 3600000 * 26).toISOString()
-  },
-  {
-    id: 'bin-2',
-    binCode: 'BIN-102',
-    locationName: 'Tech Park Gate 2 - Cafeteria',
-    latitude: 13.0850,
-    longitude: 80.2750,
-    zone: 'North Zone',
-    binType: 'RECYCLABLE',
-    capacityLiters: 1100,
-    currentFillLevel: 84.0,
-    status: 'FULL',
-    temperature: 25.1,
-    batteryLevel: 88,
-    requiresMaintenance: false,
-    lastCollectedAt: new Date(Date.now() - 3600000 * 18).toISOString()
-  },
-  {
-    id: 'bin-3',
-    binCode: 'BIN-103',
-    locationName: 'Gandhi Road Market Square',
-    latitude: 13.0780,
-    longitude: 80.2650,
-    zone: 'Central Zone',
-    binType: 'ORGANIC',
-    capacityLiters: 500,
-    currentFillLevel: 97.0,
-    status: 'OVERFLOWING',
-    temperature: 31.2,
-    batteryLevel: 79,
-    requiresMaintenance: false,
-    lastCollectedAt: new Date(Date.now() - 3600000 * 30).toISOString()
-  },
-  {
-    id: 'bin-4',
-    binCode: 'BIN-104',
-    locationName: 'Residential Colony Park 4',
-    latitude: 13.0910,
-    longitude: 80.2800,
-    zone: 'North Zone',
-    binType: 'GENERAL',
-    capacityLiters: 240,
-    currentFillLevel: 35.0,
-    status: 'MEDIUM',
-    temperature: 24.0,
-    batteryLevel: 98,
-    requiresMaintenance: false,
-    lastCollectedAt: new Date(Date.now() - 3600000 * 8).toISOString()
-  },
-  {
-    id: 'bin-5',
-    binCode: 'BIN-105',
-    locationName: 'Metro Station East Gate',
-    latitude: 13.0750,
-    longitude: 80.2600,
-    zone: 'South Zone',
-    binType: 'RECYCLABLE',
-    capacityLiters: 500,
-    currentFillLevel: 18.0,
-    status: 'LOW',
-    temperature: 26.8,
-    batteryLevel: 91,
-    requiresMaintenance: false,
-    lastCollectedAt: new Date(Date.now() - 3600000 * 4).toISOString()
-  }
-];
-
-let mockTasks = [
-  {
-    id: 'tsk-1',
-    taskCode: 'TSK-1001',
-    title: 'High Priority North Zone Pickup',
-    description: 'Clear BIN-102 Tech Park and surrounding bins',
-    assignedDriverName: 'Rajesh Kumar (Driver 1)',
-    driverPhone: '+91 94567 89012',
-    vehicleNumber: 'TN-09-WM-4421',
-    targetZone: 'North Zone',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    estimatedDistanceKm: 6.4,
-    estimatedDurationMinutes: 35,
-    binIds: ['bin-2'],
-    assignedAt: new Date(Date.now() - 3600000 * 2).toISOString()
-  },
-  {
-    id: 'tsk-2',
-    taskCode: 'TSK-1002',
-    title: 'Central Zone Market Route',
-    description: 'Empty BIN-101 and BIN-103 overflowing bins',
-    assignedDriverName: 'Suresh Babu (Driver 2)',
-    driverPhone: '+91 98111 22334',
-    vehicleNumber: 'TN-09-WM-8890',
-    targetZone: 'Central Zone',
-    status: 'PENDING',
-    priority: 'EMERGENCY',
-    estimatedDistanceKm: 4.8,
-    estimatedDurationMinutes: 25,
-    binIds: ['bin-1', 'bin-3'],
-    assignedAt: new Date(Date.now() - 3600000).toISOString()
-  }
-];
+// In-memory store (starts empty with 0 bins)
+let mockBins = [];
+let mockTasks = [];
 
 export const apiService = {
   // Bins
   async getBins(zone) {
     if (isFirebaseConfigured) {
       const fbBins = await firebaseService.getBins(zone);
-      if (fbBins && fbBins.length > 0) return fbBins;
+      if (fbBins) return fbBins;
     }
 
     try {
@@ -214,7 +99,7 @@ export const apiService = {
   async getTasks(driverId) {
     if (isFirebaseConfigured) {
       const fbTasks = await firebaseService.getTasks(driverId);
-      if (fbTasks && fbTasks.length > 0) return fbTasks;
+      if (fbTasks) return fbTasks;
     }
 
     try {
@@ -304,7 +189,7 @@ export const apiService = {
     const critical = currentBins.filter(b => (b.currentFillLevel || 0) >= 80).length;
     const overflowing = currentBins.filter(b => b.status === 'OVERFLOWING').length;
     const completedTasks = currentTasks.filter(t => t.status === 'COMPLETED').length;
-    const totalWasteCollectedTons = Number(((completedTasks * 350) / 1000 + 12.4).toFixed(1));
+    const totalWasteCollectedTons = Number(((completedTasks * 350) / 1000).toFixed(1));
 
     return {
       totalBins: currentBins.length,
@@ -316,7 +201,7 @@ export const apiService = {
       totalWasteCollectedTons,
       co2OffsetKg: Math.round(totalWasteCollectedTons * 620),
       treesSavedEquivalent: Math.round(totalWasteCollectedTons * 17),
-      efficiencyRatingPercent: Math.max(90, 100 - critical * 3)
+      efficiencyRatingPercent: currentBins.length === 0 ? 100 : Math.max(90, 100 - critical * 3)
     };
   },
 
