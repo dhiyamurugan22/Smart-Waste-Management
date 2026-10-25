@@ -195,6 +195,21 @@ export const apiService = {
     }
   },
 
+  async deleteBin(id) {
+    if (isFirebaseConfigured) {
+      await firebaseService.deleteBin(id);
+    }
+    mockBins = mockBins.filter(b => b.id !== id);
+    return id;
+  },
+
+  async clearAllBins() {
+    if (isFirebaseConfigured) {
+      await firebaseService.clearAllBins();
+    }
+    mockBins = [];
+  },
+
   // Tasks
   async getTasks(driverId) {
     if (isFirebaseConfigured) {

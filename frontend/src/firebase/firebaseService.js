@@ -245,6 +245,24 @@ export const firebaseService = {
     return { id: snap.id, ...snap.data() };
   },
 
+  // Delete Bin
+  async deleteBin(id) {
+    if (!isFirebaseConfigured || !db) return null;
+    const binRef = doc(db, 'waste_bins', id);
+    await deleteDoc(binRef);
+    return id;
+  },
+
+  // Clear all bins from database
+  async clearAllBins() {
+    if (!isFirebaseConfigured || !db) return;
+    const binsCol = collection(db, 'waste_bins');
+    const snap = await getDocs(binsCol);
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  },
+
   // Fetch Tasks once
   async getTasks(driverId) {
     if (!isFirebaseConfigured || !db) return null;

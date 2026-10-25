@@ -90,6 +90,22 @@ function MainApp() {
     setMetrics(updatedMetrics);
   };
 
+  const handleDeleteBin = async (binId) => {
+    await apiService.deleteBin(binId);
+    setBins(prev => prev.filter(b => b.id !== binId));
+    const updatedMetrics = await apiService.getOverviewMetrics();
+    setMetrics(updatedMetrics);
+  };
+
+  const handleClearAllBins = async () => {
+    if (window.confirm("Are you sure you want to clear all smart bins and start with an empty database?")) {
+      await apiService.clearAllBins();
+      setBins([]);
+      const updatedMetrics = await apiService.getOverviewMetrics();
+      setMetrics(updatedMetrics);
+    }
+  };
+
   const handleCreateTask = async (taskData) => {
     const created = await apiService.createTask(taskData);
     setTasks(prev => [created, ...prev]);
@@ -135,6 +151,8 @@ function MainApp() {
             bins={bins}
             onAddBin={handleAddBin}
             onEmptyBin={handleEmptyBin}
+            onDeleteBin={handleDeleteBin}
+            onClearAllBins={handleClearAllBins}
           />
         )}
 

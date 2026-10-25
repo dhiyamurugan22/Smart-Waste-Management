@@ -3,7 +3,7 @@ import { StatusBadge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Plus, Trash2, Search, Filter, Thermometer, Battery, MapPin } from 'lucide-react';
 
-export const BinManagementPage = ({ bins, onAddBin, onEmptyBin }) => {
+export const BinManagementPage = ({ bins, onAddBin, onEmptyBin, onDeleteBin, onClearAllBins }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedZone, setSelectedZone] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,9 +54,21 @@ export const BinManagementPage = ({ bins, onAddBin, onEmptyBin }) => {
             Inspect bin capacity, battery status, IoT sensors and zone allocation
           </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
-          <Plus size={16} /> Deploy New Smart Bin
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {bins.length > 0 && onClearAllBins && (
+            <button
+              onClick={onClearAllBins}
+              className="btn btn-secondary"
+              style={{ color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+              title="Delete all sample bins from database"
+            >
+              <Trash2 size={16} /> Clear All Bins
+            </button>
+          )}
+          <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
+            <Plus size={16} /> Deploy New Smart Bin
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -154,14 +166,26 @@ export const BinManagementPage = ({ bins, onAddBin, onEmptyBin }) => {
                     <span style={{ fontSize: '0.85rem' }}>{bin.capacityLiters} L</span>
                   </td>
                   <td>
-                    <button
-                      onClick={() => onEmptyBin(bin.id)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.75rem' }}
-                      title="Clear waste bin contents"
-                    >
-                      Empty
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        onClick={() => onEmptyBin(bin.id)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.75rem' }}
+                        title="Clear waste bin contents"
+                      >
+                        Empty
+                      </button>
+                      {onDeleteBin && (
+                        <button
+                          onClick={() => onDeleteBin(bin.id)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.75rem', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                          title="Permanently remove this bin"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
