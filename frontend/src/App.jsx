@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
+import { BottomNav } from './components/BottomNav';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { BinManagementPage } from './pages/BinManagementPage';
 import { DriverTasksPage } from './pages/DriverTasksPage';
@@ -117,6 +118,9 @@ function MainApp() {
     fetchData();
   };
 
+  const criticalCount = bins.filter(b => b.currentFillLevel >= 80).length;
+  const activeTaskCount = tasks.filter(t => t.status !== 'COMPLETED').length;
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar
@@ -169,16 +173,17 @@ function MainApp() {
         )}
       </main>
 
-      <footer style={{
-        marginTop: '3rem',
-        padding: '1.5rem',
-        borderTop: '1px solid var(--border-color)',
-        textAlign: 'center',
-        fontSize: '0.8rem',
-        color: 'var(--text-secondary)'
-      }}>
+      <footer className="app-footer">
         BinFlow Tracker Smart Waste Management System &copy; {new Date().getFullYear()} — Municipal Environmental Operations Platform
       </footer>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        criticalCount={criticalCount}
+        activeTaskCount={activeTaskCount}
+      />
     </div>
   );
 }

@@ -12,28 +12,29 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, trend, color = 'e
   const scheme = colorMap[color] || colorMap.emerald;
 
   return (
-    <div className="glass-panel" style={{ padding: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{title}</span>
+    <div className="glass-panel" style={{ padding: '1.1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+        <span className="stat-card-title" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{title}</span>
         <div style={{
-          width: '38px',
-          height: '38px',
+          width: '36px',
+          height: '36px',
           borderRadius: '10px',
           background: scheme.bg,
           border: `1px solid ${scheme.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: scheme.text
+          color: scheme.text,
+          flexShrink: 0
         }}>
-          {Icon && <Icon size={20} />}
+          {Icon && <Icon size={18} />}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.25rem' }}>
-        <h3 style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</h3>
+        <h3 className="stat-card-value" style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</h3>
       </div>
       {subtitle && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{subtitle}</p>
+        <p className="stat-card-sub" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{subtitle}</p>
       )}
     </div>
   );

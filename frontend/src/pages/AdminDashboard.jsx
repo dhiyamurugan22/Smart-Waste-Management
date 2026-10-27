@@ -8,10 +8,10 @@ export const AdminDashboard = ({ metrics, bins, tasks, onEmptyBin, setActiveTab 
   const criticalBins = bins.filter(b => b.currentFillLevel >= 80);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1rem' }}>
+    <div className="page-container">
       
       {/* Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="page-header">
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             Authority Operations Central
@@ -20,9 +20,9 @@ export const AdminDashboard = ({ metrics, bins, tasks, onEmptyBin, setActiveTab 
             Real-time urban waste monitoring, sensor telemetry & automated collection dispatch
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="page-header-actions">
           <button onClick={() => setActiveTab('bins')} className="btn btn-secondary btn-sm">
-            <Plus size={16} /> Add Waste Bin
+            <Plus size={16} /> Deploy Bin
           </button>
           <button onClick={() => setActiveTab('driver-portal')} className="btn btn-primary btn-sm">
             <Truck size={16} /> Driver Tasks
@@ -66,13 +66,13 @@ export const AdminDashboard = ({ metrics, bins, tasks, onEmptyBin, setActiveTab 
       <div className="grid-2col" style={{ marginBottom: '1.5rem' }}>
         
         {/* Interactive Live Map */}
-        <div className="glass-panel" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '1.1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.85rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Live Sensor Geospatial Map</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>GPS-tagged smart bins color-coded by capacity threshold</p>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Live Sensor Geospatial Map</h3>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>GPS-tagged smart bins color-coded by capacity threshold</p>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></span> &lt;40%</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }}></span> 40-79%</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f43f5e' }}></span> &ge;80%</span>

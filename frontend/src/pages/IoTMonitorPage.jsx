@@ -16,35 +16,35 @@ export const IoTMonitorPage = ({ bins, onSimulateTick }) => {
   }, [autoStream, onSimulateTick]);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1rem' }}>
+    <div className="page-container">
       
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="page-header">
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Radio size={24} color="#06b6d4" /> IoT Sensor Telemetry & Smart Mesh
+            <Radio size={24} color="#06b6d4" /> IoT Sensor Telemetry
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
             Live LoRaWAN Ultrasonic & Thermal Sensor Readings across Connected Urban Waste Nodes
           </p>
         </div>
         
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="page-header-actions">
           <button
             onClick={() => setAutoStream(!autoStream)}
             className={`btn btn-sm ${autoStream ? 'btn-danger' : 'btn-secondary'}`}
             style={{ fontSize: '0.85rem' }}
           >
-            <Activity size={16} /> {autoStream ? 'Stop Auto-Stream (3s)' : 'Start Auto-Stream (3s)'}
+            <Activity size={16} /> {autoStream ? 'Stop Stream (3s)' : 'Live Auto-Stream (3s)'}
           </button>
           <button onClick={onSimulateTick} className="btn btn-primary btn-sm">
-            <RefreshCw size={16} /> Force Telemetry Ping
+            <RefreshCw size={16} /> Ping Sensors
           </button>
         </div>
       </div>
 
       {/* Sensor Node Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
         {bins.map(bin => {
           const isCritical = bin.currentFillLevel >= 80;
           return (

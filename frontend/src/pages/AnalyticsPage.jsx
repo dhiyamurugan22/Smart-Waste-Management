@@ -4,16 +4,18 @@ import { Leaf, Award, Recycle, Flame, TrendingUp, BarChart2 } from 'lucide-react
 
 export const AnalyticsPage = ({ metrics }) => {
   return (
-    <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1rem' }}>
+    <div className="page-container">
       
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-          Urban Sustainability & Environmental Intelligence
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Real-time CO₂ carbon footprint offset, recycling efficiency ratings, and aggregate municipal trends
-        </p>
+      <div className="page-header" style={{ marginBottom: '1.25rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Urban Sustainability & Intelligence
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            Real-time CO₂ carbon footprint offset, recycling efficiency ratings, and aggregate municipal trends
+          </p>
+        </div>
       </div>
 
       {/* Environmental Stat Cards */}
