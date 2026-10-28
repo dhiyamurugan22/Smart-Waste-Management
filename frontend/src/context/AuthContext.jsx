@@ -1,4 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { auth, db, isFirebaseConfigured } from '../firebase/config';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as fbSignOut,
+  onAuthStateChanged
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -22,6 +30,33 @@ export const demoProfiles = {
   }
 };
 
+// Convert Firebase auth error codes into clear messages
+export const getFriendlyAuthErrorMessage = (error) => {
+  if (!error) return 'An error occurred during authentication.';
+  const code = error.code || '';
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+      return 'Incorrect email or password. Please try again.';
+    case 'auth/user-not-found':
+      return 'No account found with this email. Please switch to "Create Account" below.';
+    case 'auth/email-already-in-use':
+      return 'This email is already in use. Please switch to "Sign In".';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters long.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/network-request-failed':
+      return 'Network connection issue. Please check your internet connection.';
+    case 'auth/too-many-requests':
+      return 'Access temporarily blocked due to many failed attempts. Try again later.';
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.';
+    default:
+      return error.message || 'Authentication failed. Please verify credentials.';
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -33,33 +68,235 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
-  const login = (role, email, password, remember = true) => {
-    const base = demoProfiles[role] || demoProfiles.ADMIN;
-    const user = {
-      ...base,
-      email: email || base.email,
-      lastLogin: new Date().toISOString()
-    };
+  // Keep Firebase Auth state synchronized if user is already signed in
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) return;
 
-    setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        // If we don't have currentUser or it's from a different user, load Firestore profile
+        if (!currentUser || currentUser.uid !== fbUser.uid) {
+          try {
+            let role = 'ADMIN';
+            let name = fbUser.displayName || fbUser.email.split('@')[0];
+            let department = 'Operations';
 
-    if (remember) {
+            if (db) {
+              const userRef = doc(db, 'users', fbUser.uid);
+              const userSnap = await getDoc(userRef);
+              if (userSnap.exists()) {
+                const data = userSnap.data();
+                role = data.role || role;
+                name = data.name || name;
+                department = data.department || department;
+              }
+            }
+
+            const refreshedUser = {
+              uid: fbUser.uid,
+              name,
+              email: fbUser.email,
+              role,
+              avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
+              department,
+              lastLogin: new Date().toISOString()
+            };
+
+            setCurrentUser(refreshedUser);
+            localStorage.setItem('smartwaste_auth_user', JSON.stringify(refreshedUser));
+          } catch (err) {
+            console.warn("Could not fetch user profile from Firestore:", err);
+          }
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  /**
+   * Log In using Email & Password with Firebase Auth & Firestore DB sync
+   */
+  const login = async (role, email, password, remember = true) => {
+    const trimmedEmail = (email || '').trim();
+    const trimmedPass = (password || '').trim();
+
+    // Check if Firebase is available
+    if (isFirebaseConfigured && auth) {
       try {
-        localStorage.setItem('smartwaste_auth_user', JSON.stringify(user));
-      } catch (e) {
-        console.warn("Could not save user session:", e);
+        const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+        const fbUser = userCredential.user;
+
+        // Fetch or create user record in Firestore "users" collection
+        let assignedRole = role;
+        let displayName = fbUser.displayName || trimmedEmail.split('@')[0];
+        let department = role === 'ADMIN' ? 'Municipal Waste Operations' : 'Urban Sanitation Fleet';
+
+        if (db) {
+          const userRef = doc(db, 'users', fbUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            assignedRole = data.role || role;
+            displayName = data.name || displayName;
+            department = data.department || department;
+            await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
+          } else {
+            // First time this auth user enters the database, register their role
+            await setDoc(userRef, {
+              uid: fbUser.uid,
+              name: displayName,
+              email: fbUser.email,
+              role: assignedRole,
+              avatar: assignedRole === 'ADMIN' ? '👨‍💼' : '🚛',
+              department,
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString()
+            });
+          }
+        }
+
+        const appUser = {
+          uid: fbUser.uid,
+          name: displayName,
+          email: fbUser.email,
+          role: assignedRole,
+          avatar: assignedRole === 'ADMIN' ? '👨‍💼' : '🚛',
+          department,
+          lastLogin: new Date().toISOString()
+        };
+
+        setCurrentUser(appUser);
+        if (remember) {
+          localStorage.setItem('smartwaste_auth_user', JSON.stringify(appUser));
+        }
+
+        return { success: true, user: appUser };
+      } catch (err) {
+        // If it's a demo credential, gracefully allow demo login as fallback
+        const isDemoAdmin = trimmedEmail === 'admin@smartwaste.com' && (trimmedPass === 'admin123' || trimmedPass === 'demo123');
+        const isDemoDriver = trimmedEmail.includes('driver') && (trimmedPass === 'driver123' || trimmedPass === 'demo123');
+
+        if (isDemoAdmin || isDemoDriver) {
+          const base = demoProfiles[role] || demoProfiles.ADMIN;
+          const demoUser = {
+            ...base,
+            email: trimmedEmail,
+            lastLogin: new Date().toISOString()
+          };
+          setCurrentUser(demoUser);
+          if (remember) {
+            localStorage.setItem('smartwaste_auth_user', JSON.stringify(demoUser));
+          }
+          return { success: true, user: demoUser, isDemo: true };
+        }
+
+        // Return error message for regular Firebase auth failure
+        return { success: false, message: getFriendlyAuthErrorMessage(err), rawError: err };
       }
     }
 
+    // Local / Offline demo mode fallback
+    const base = demoProfiles[role] || demoProfiles.ADMIN;
+    const user = {
+      ...base,
+      email: trimmedEmail || base.email,
+      lastLogin: new Date().toISOString()
+    };
+    setCurrentUser(user);
+    if (remember) {
+      localStorage.setItem('smartwaste_auth_user', JSON.stringify(user));
+    }
     return { success: true, user };
   };
 
-  const logout = () => {
+  /**
+   * Register a new user with Email, Password & chosen Role in Firebase Auth + Firestore
+   */
+  const register = async (role, email, password, name = '', remember = true) => {
+    const trimmedEmail = (email || '').trim();
+    const trimmedPass = (password || '').trim();
+    const trimmedName = (name || '').trim();
+
+    if (!isFirebaseConfigured || !auth) {
+      return {
+        success: false,
+        message: 'Firebase is not initialized. Connect your Firebase credentials to register real accounts.'
+      };
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+      const fbUser = userCredential.user;
+
+      const displayName = trimmedName || trimmedEmail.split('@')[0];
+      const department = role === 'ADMIN' ? 'Municipal Waste Operations' : 'Urban Sanitation Fleet';
+
+      // Store in Firestore Database
+      if (db) {
+        const userRef = doc(db, 'users', fbUser.uid);
+        await setDoc(userRef, {
+          uid: fbUser.uid,
+          name: displayName,
+          email: fbUser.email,
+          role: role,
+          avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
+          department,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        });
+      }
+
+      const appUser = {
+        uid: fbUser.uid,
+        name: displayName,
+        email: fbUser.email,
+        role: role,
+        avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
+        department,
+        lastLogin: new Date().toISOString()
+      };
+
+      setCurrentUser(appUser);
+      if (remember) {
+        localStorage.setItem('smartwaste_auth_user', JSON.stringify(appUser));
+      }
+
+      return { success: true, user: appUser };
+    } catch (err) {
+      return { success: false, message: getFriendlyAuthErrorMessage(err), rawError: err };
+    }
+  };
+
+  /**
+   * Quick 1-Click Demo Login
+   */
+  const loginDemo = (role) => {
+    const base = demoProfiles[role] || demoProfiles.ADMIN;
+    const user = {
+      ...base,
+      lastLogin: new Date().toISOString()
+    };
+    setCurrentUser(user);
+    localStorage.setItem('smartwaste_auth_user', JSON.stringify(user));
+    return { success: true, user };
+  };
+
+  /**
+   * Logout from Firebase Auth & local session
+   */
+  const logout = async () => {
+    try {
+      if (isFirebaseConfigured && auth) {
+        await fbSignOut(auth);
+      }
+    } catch (e) {
+      console.warn("Firebase sign out error:", e);
+    }
     try {
       localStorage.removeItem('smartwaste_auth_user');
-    } catch (e) {
-      console.warn("Could not clear user session:", e);
-    }
+    } catch (e) {}
     setCurrentUser(null);
   };
 
@@ -78,8 +315,11 @@ export const AuthProvider = ({ children }) => {
       currentUser,
       isAuthenticated: Boolean(currentUser),
       login,
+      register,
+      loginDemo,
       logout,
-      switchRole
+      switchRole,
+      isFirebaseActive: isFirebaseConfigured
     }}>
       {children}
     </AuthContext.Provider>

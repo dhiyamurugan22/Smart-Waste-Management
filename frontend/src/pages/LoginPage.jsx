@@ -1,56 +1,123 @@
 import React, { useState } from 'react';
 import { useAuth, demoProfiles } from '../context/AuthContext';
-import { Trash2, ShieldCheck, Truck, Lock, Mail, ArrowRight, Eye, EyeOff, CheckCircle2, Sparkles, Compass } from 'lucide-react';
+import {
+  Trash2,
+  ShieldCheck,
+  Truck,
+  Lock,
+  Mail,
+  User,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Flame,
+  UserPlus,
+  LogIn,
+  CheckCircle2
+} from 'lucide-react';
 
 export const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, register, loginDemo, isFirebaseActive } = useAuth();
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
   const [selectedRole, setSelectedRole] = useState('ADMIN'); // 'ADMIN' or 'DRIVER'
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('admin@smartwaste.com');
   const [password, setPassword] = useState('admin123');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRoleSelect = (role) => {
     setSelectedRole(role);
     setErrorMsg('');
-    if (role === 'ADMIN') {
-      setEmail(demoProfiles.ADMIN.email);
-      setPassword('admin123');
-    } else {
-      setEmail(demoProfiles.DRIVER.email);
-      setPassword('driver123');
+    setSuccessMsg('');
+    if (authMode === 'login') {
+      if (role === 'ADMIN') {
+        setEmail(demoProfiles.ADMIN.email);
+        setPassword('admin123');
+      } else {
+        setEmail(demoProfiles.DRIVER.email);
+        setPassword('driver123');
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleModeSwitch = (mode) => {
+    setAuthMode(mode);
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (mode === 'register') {
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setFullName('');
+    } else {
+      if (selectedRole === 'ADMIN') {
+        setEmail(demoProfiles.ADMIN.email);
+        setPassword('admin123');
+      } else {
+        setEmail(demoProfiles.DRIVER.email);
+        setPassword('driver123');
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
 
     if (!email.trim() || !password.trim()) {
       setErrorMsg('Please enter both email and password.');
       return;
     }
 
+    if (authMode === 'register') {
+      if (password.length < 6) {
+        setErrorMsg('Password must be at least 6 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg('Passwords do not match. Please verify.');
+        return;
+      }
+    }
+
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = login(selectedRole, email, password, rememberMe);
-      setIsLoading(false);
-      if (!res.success) {
-        setErrorMsg(res.message || 'Login failed. Please check credentials.');
+    try {
+      if (authMode === 'register') {
+        const res = await register(selectedRole, email, password, fullName, rememberMe);
+        setIsLoading(false);
+        if (!res.success) {
+          setErrorMsg(res.message);
+        } else {
+          setSuccessMsg('Account registered successfully in Firebase! Launching dashboard...');
+        }
+      } else {
+        const res = await login(selectedRole, email, password, rememberMe);
+        setIsLoading(false);
+        if (!res.success) {
+          setErrorMsg(res.message);
+        }
       }
-    }, 350);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMsg(err.message || 'An unexpected error occurred during authentication.');
+    }
   };
 
   const handleQuickLogin = (role) => {
     setIsLoading(true);
+    setErrorMsg('');
     setTimeout(() => {
-      const profile = demoProfiles[role];
-      login(role, profile.email, 'demo123', true);
+      loginDemo(role);
       setIsLoading(false);
-    }, 250);
+    }, 200);
   };
 
   return (
@@ -91,7 +158,7 @@ export const LoginPage = () => {
       {/* Main Login Card */}
       <div className="glass-panel" style={{
         width: '100%',
-        maxWidth: '480px',
+        maxWidth: '490px',
         padding: '2rem 1.75rem',
         borderRadius: '24px',
         position: 'relative',
@@ -101,7 +168,7 @@ export const LoginPage = () => {
       }}>
 
         {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <div style={{
             width: '56px',
             height: '56px',
@@ -122,12 +189,85 @@ export const LoginPage = () => {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
             Intelligent Municipal Waste Management System
           </p>
+
+          {/* Firebase Status Pill */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            background: isFirebaseActive ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${isFirebaseActive ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-color)'}`,
+            padding: '0.25rem 0.65rem',
+            borderRadius: '20px',
+            fontSize: '0.72rem',
+            color: isFirebaseActive ? '#fbbf24' : 'var(--text-muted)',
+            marginTop: '0.5rem'
+          }}>
+            <Flame size={13} color={isFirebaseActive ? '#f59e0b' : '#94a3b8'} />
+            <span>{isFirebaseActive ? 'Firebase Email Auth & Firestore Active' : 'Offline Demo Mode Active'}</span>
+          </div>
+        </div>
+
+        {/* Auth Mode Toggle: Sign In vs Create Account */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '0.5rem',
+          background: 'rgba(15, 23, 42, 0.6)',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)',
+          marginBottom: '1.25rem'
+        }}>
+          <button
+            type="button"
+            onClick={() => handleModeSwitch('login')}
+            style={{
+              padding: '0.55rem',
+              borderRadius: '8px',
+              border: authMode === 'login' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid transparent',
+              background: authMode === 'login' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+              color: authMode === 'login' ? '#34d399' : 'var(--text-muted)',
+              fontWeight: authMode === 'login' ? 700 : 500,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <LogIn size={15} />
+            <span>Sign In</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleModeSwitch('register')}
+            style={{
+              padding: '0.55rem',
+              borderRadius: '8px',
+              border: authMode === 'register' ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid transparent',
+              background: authMode === 'register' ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
+              color: authMode === 'register' ? '#38bdf8' : 'var(--text-muted)',
+              fontWeight: authMode === 'register' ? 700 : 500,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <UserPlus size={15} />
+            <span>Create Account</span>
+          </button>
         </div>
 
         {/* Role Selection Tabs */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label className="form-label" style={{ marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Sparkles size={14} color="var(--accent-emerald)" /> Select Your Operational Role
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label className="form-label" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Sparkles size={14} color="var(--accent-emerald)" /> Select Operational Role
           </label>
           <div style={{
             display: 'grid',
@@ -190,18 +330,18 @@ export const LoginPage = () => {
 
         {/* Role Brief Description Banner */}
         <div style={{
-          padding: '0.75rem 0.9rem',
+          padding: '0.65rem 0.85rem',
           borderRadius: '12px',
           background: selectedRole === 'ADMIN' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(6, 182, 212, 0.08)',
           border: `1px solid ${selectedRole === 'ADMIN' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(6, 182, 212, 0.25)'}`,
-          marginBottom: '1.35rem',
+          marginBottom: '1.25rem',
           fontSize: '0.8rem',
           color: 'var(--text-secondary)',
           display: 'flex',
           alignItems: 'flex-start',
           gap: '8px'
         }}>
-          <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>
+          <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>
             {selectedRole === 'ADMIN' ? '👨‍💼' : '🚛'}
           </span>
           <div>
@@ -210,11 +350,30 @@ export const LoginPage = () => {
             </strong>
             <span>
               {selectedRole === 'ADMIN'
-                ? 'Access central city dashboard, GPS bin map, live LoRaWAN sensor feeds & analytics.'
-                : 'Access active dispatch trips, vehicle routes, live weight logging & status completion.'}
+                ? 'Monitors city-wide bins, telemetry, IoT alerts, and dispatches driver tasks.'
+                : 'View assigned trips, update bin pickup status, and log waste weight.'}
             </span>
           </div>
         </div>
+
+        {/* Success message */}
+        {successMsg && (
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            color: '#34d399',
+            padding: '0.65rem 0.85rem',
+            borderRadius: '10px',
+            fontSize: '0.82rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <CheckCircle2 size={16} />
+            <span>{successMsg}</span>
+          </div>
+        )}
 
         {/* Error message */}
         {errorMsg && (
@@ -227,16 +386,34 @@ export const LoginPage = () => {
             fontSize: '0.82rem',
             marginBottom: '1rem',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: '6px'
           }}>
-            <span>⚠️ {errorMsg}</span>
+            <span>⚠️</span>
+            <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Main Auth Form */}
         <form onSubmit={handleSubmit}>
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
+          {authMode === 'register' && (
+            <div className="form-group" style={{ marginBottom: '0.9rem' }}>
+              <label className="form-label">Full Name</label>
+              <div style={{ position: 'relative' }}>
+                <User size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder={selectedRole === 'ADMIN' ? 'e.g. Officer Anita Sharma' : 'e.g. Driver Ramesh Patel'}
+                  className="form-input"
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="form-group" style={{ marginBottom: '0.9rem' }}>
             <label className="form-label">Email Address</label>
             <div style={{ position: 'relative' }}>
               <Mail size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -245,14 +422,14 @@ export const LoginPage = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@smartwaste.com"
+                placeholder="your.email@domain.com"
                 className="form-input"
                 style={{ paddingLeft: '2.5rem' }}
               />
             </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+          <div className="form-group" style={{ marginBottom: authMode === 'register' ? '0.9rem' : '1.15rem' }}>
             <label className="form-label">Password</label>
             <div style={{ position: 'relative' }}>
               <Lock size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -288,7 +465,25 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {authMode === 'register' && (
+            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+              <label className="form-label">Confirm Password</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password"
+                  className="form-input"
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -298,7 +493,9 @@ export const LoginPage = () => {
               />
               Remember my session
             </label>
-            <span style={{ color: 'var(--accent-cyan)', fontSize: '0.78rem' }}>Demo credentials pre-filled</span>
+            {authMode === 'login' && (
+              <span style={{ color: 'var(--accent-cyan)', fontSize: '0.78rem' }}>Demo credentials pre-filled</span>
+            )}
           </div>
 
           <button
@@ -314,7 +511,12 @@ export const LoginPage = () => {
             }}
           >
             {isLoading ? (
-              <span>Authenticating...</span>
+              <span>Authenticating with Firebase...</span>
+            ) : authMode === 'register' ? (
+              <>
+                <UserPlus size={18} />
+                <span>Register as {selectedRole === 'ADMIN' ? 'Admin' : 'Driver'}</span>
+              </>
             ) : (
               <>
                 <span>Sign In to {selectedRole === 'ADMIN' ? 'Admin Central' : 'Driver Portal'}</span>
@@ -325,9 +527,9 @@ export const LoginPage = () => {
         </form>
 
         {/* Quick Demo 1-Click Login Section */}
-        <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Instant Demo Access
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.15rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Instant Demo Bypass (No Credentials Needed)
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
@@ -340,10 +542,10 @@ export const LoginPage = () => {
                 gap: '0.4rem',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
                 color: '#34d399',
-                padding: '0.6rem 0.5rem'
+                padding: '0.55rem 0.5rem'
               }}
             >
-              <span>👨‍💼</span> Log in as Admin
+              <span>👨‍💼</span> Admin Dashboard
             </button>
 
             <button
@@ -355,10 +557,10 @@ export const LoginPage = () => {
                 gap: '0.4rem',
                 border: '1px solid rgba(6, 182, 212, 0.3)',
                 color: '#38bdf8',
-                padding: '0.6rem 0.5rem'
+                padding: '0.55rem 0.5rem'
               }}
             >
-              <span>🚛</span> Log in as Driver
+              <span>🚛</span> Driver Console
             </button>
           </div>
         </div>
@@ -366,7 +568,7 @@ export const LoginPage = () => {
       </div>
 
       {/* Footer Info */}
-      <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', zIndex: 1 }}>
+      <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', zIndex: 1 }}>
         BinFlow Tracker IoT Municipal Environmental Operations • {new Date().getFullYear()}
       </div>
     </div>

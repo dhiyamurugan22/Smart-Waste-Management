@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // Try to load any credentials saved directly in browser localStorage
 let storedConfig = null;
@@ -53,12 +54,14 @@ export function clearFirebaseConfig() {
 // Initialize Firebase
 let app = null;
 let db = null;
+let auth = null;
 
 if (isFirebaseConfigured) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
-    console.log("🔥 [Firebase] Connected to Cloud Firestore project:", firebaseConfig.projectId);
+    auth = getAuth(app);
+    console.log("🔥 [Firebase] Connected to Cloud Firestore & Auth for project:", firebaseConfig.projectId);
   } catch (err) {
     console.error("🔥 [Firebase] Initialization error:", err);
   }
@@ -66,4 +69,4 @@ if (isFirebaseConfigured) {
   console.info("ℹ️ [Firebase] Running in Demo Mode. Connect your Firebase credentials via the navbar button to go live!");
 }
 
-export { app, db };
+export { app, db, auth };
