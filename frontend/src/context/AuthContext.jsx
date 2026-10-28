@@ -41,7 +41,7 @@ export const getFriendlyAuthErrorMessage = (error) => {
     case 'auth/user-not-found':
       return 'No account found with this email. Please switch to "Create Account" below.';
     case 'auth/email-already-in-use':
-      return 'This email is already in use. Please switch to "Sign In".';
+      return 'This email is already registered. Switching to Sign In...';
     case 'auth/weak-password':
       return 'Password should be at least 6 characters long.';
     case 'auth/invalid-email':
@@ -53,6 +53,9 @@ export const getFriendlyAuthErrorMessage = (error) => {
     case 'auth/operation-not-allowed':
       return 'Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.';
     default:
+      if (error.message && error.message.includes('permission')) {
+        return 'Firestore database permissions are locked. To save users permanently to database, update Firestore security rules in Firebase Console.';
+      }
       return error.message || 'Authentication failed. Please verify credentials.';
   }
 };
@@ -74,14 +77,14 @@ export const AuthProvider = ({ children }) => {
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        // If we don't have currentUser or it's from a different user, load Firestore profile
         if (!currentUser || currentUser.uid !== fbUser.uid) {
-          try {
-            let role = 'ADMIN';
-            let name = fbUser.displayName || fbUser.email.split('@')[0];
-            let department = 'Operations';
+          let role = 'ADMIN';
+          let name = fbUser.displayName || fbUser.email.split('@')[0];
+          let department = 'Operations';
 
-            if (db) {
+          // Safe non-blocking Firestore sync
+          if (db) {
+            try {
               const userRef = doc(db, 'users', fbUser.uid);
               const userSnap = await getDoc(userRef);
               if (userSnap.exists()) {
@@ -90,23 +93,23 @@ export const AuthProvider = ({ children }) => {
                 name = data.name || name;
                 department = data.department || department;
               }
+            } catch (err) {
+              console.warn("ℹ️ [Firestore] User profile read skipped (rules locked or offline):", err.message);
             }
-
-            const refreshedUser = {
-              uid: fbUser.uid,
-              name,
-              email: fbUser.email,
-              role,
-              avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
-              department,
-              lastLogin: new Date().toISOString()
-            };
-
-            setCurrentUser(refreshedUser);
-            localStorage.setItem('smartwaste_auth_user', JSON.stringify(refreshedUser));
-          } catch (err) {
-            console.warn("Could not fetch user profile from Firestore:", err);
           }
+
+          const refreshedUser = {
+            uid: fbUser.uid,
+            name,
+            email: fbUser.email,
+            role,
+            avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
+            department,
+            lastLogin: new Date().toISOString()
+          };
+
+          setCurrentUser(refreshedUser);
+          localStorage.setItem('smartwaste_auth_user', JSON.stringify(refreshedUser));
         }
       }
     });
@@ -115,7 +118,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Log In using Email & Password with Firebase Auth & Firestore DB sync
+   * Log In using Email & Password with Firebase Auth & safe Firestore sync
    */
   const login = async (role, email, password, remember = true) => {
     const trimmedEmail = (email || '').trim();
@@ -127,33 +130,37 @@ export const AuthProvider = ({ children }) => {
         const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
         const fbUser = userCredential.user;
 
-        // Fetch or create user record in Firestore "users" collection
         let assignedRole = role;
         let displayName = fbUser.displayName || trimmedEmail.split('@')[0];
         let department = role === 'ADMIN' ? 'Municipal Waste Operations' : 'Urban Sanitation Fleet';
 
+        // Safe non-blocking Firestore read & update
         if (db) {
-          const userRef = doc(db, 'users', fbUser.uid);
-          const userSnap = await getDoc(userRef);
+          try {
+            const userRef = doc(db, 'users', fbUser.uid);
+            const userSnap = await getDoc(userRef);
 
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            assignedRole = data.role || role;
-            displayName = data.name || displayName;
-            department = data.department || department;
-            await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
-          } else {
-            // First time this auth user enters the database, register their role
-            await setDoc(userRef, {
-              uid: fbUser.uid,
-              name: displayName,
-              email: fbUser.email,
-              role: assignedRole,
-              avatar: assignedRole === 'ADMIN' ? '👨‍💼' : '🚛',
-              department,
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString()
-            });
+            if (userSnap.exists()) {
+              const data = userSnap.data();
+              assignedRole = data.role || role;
+              displayName = data.name || displayName;
+              department = data.department || department;
+              await setDoc(userRef, { lastLogin: new Date().toISOString() }, { merge: true });
+            } else {
+              // Attempt to write profile
+              await setDoc(userRef, {
+                uid: fbUser.uid,
+                name: displayName,
+                email: fbUser.email,
+                role: assignedRole,
+                avatar: assignedRole === 'ADMIN' ? '👨‍💼' : '🚛',
+                department,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+              }, { merge: true });
+            }
+          } catch (dbErr) {
+            console.warn("ℹ️ [Firestore] Database write skipped due to security rules:", dbErr.message);
           }
         }
 
@@ -192,7 +199,6 @@ export const AuthProvider = ({ children }) => {
           return { success: true, user: demoUser, isDemo: true };
         }
 
-        // Return error message for regular Firebase auth failure
         return { success: false, message: getFriendlyAuthErrorMessage(err), rawError: err };
       }
     }
@@ -212,7 +218,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Register a new user with Email, Password & chosen Role in Firebase Auth + Firestore
+   * Register a new user with Email, Password & chosen Role
+   * Handles email-already-in-use by seamlessly signing in
+   * Safely isolates Firestore database write so permission errors never block login
    */
   const register = async (role, email, password, name = '', remember = true) => {
     const trimmedEmail = (email || '').trim();
@@ -227,25 +235,50 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
-      const fbUser = userCredential.user;
+      let fbUser;
 
-      const displayName = trimmedName || trimmedEmail.split('@')[0];
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+        fbUser = userCredential.user;
+      } catch (authErr) {
+        // If user already exists in Firebase Auth (e.g. created on previous click), automatically sign them in!
+        if (authErr.code === 'auth/email-already-in-use') {
+          try {
+            const signInRes = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPass);
+            fbUser = signInRes.user;
+          } catch (signInErr) {
+            return {
+              success: false,
+              message: 'This email is already registered with a different password. Please switch to "Sign In".'
+            };
+          }
+        } else {
+          throw authErr;
+        }
+      }
+
+      const displayName = trimmedName || fbUser.displayName || trimmedEmail.split('@')[0];
       const department = role === 'ADMIN' ? 'Municipal Waste Operations' : 'Urban Sanitation Fleet';
 
-      // Store in Firestore Database
+      // Safe non-blocking Firestore write:
+      // Even if Firestore security rules in Firebase Console are locked,
+      // the user is STILL successfully authenticated into their dashboard!
       if (db) {
-        const userRef = doc(db, 'users', fbUser.uid);
-        await setDoc(userRef, {
-          uid: fbUser.uid,
-          name: displayName,
-          email: fbUser.email,
-          role: role,
-          avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
-          department,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        });
+        try {
+          const userRef = doc(db, 'users', fbUser.uid);
+          await setDoc(userRef, {
+            uid: fbUser.uid,
+            name: displayName,
+            email: fbUser.email,
+            role: role,
+            avatar: role === 'ADMIN' ? '👨‍💼' : '🚛',
+            department,
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+          }, { merge: true });
+        } catch (dbErr) {
+          console.warn("ℹ️ [Firestore] User profile database write skipped (check Firestore Rules in Firebase Console):", dbErr.message);
+        }
       }
 
       const appUser = {
