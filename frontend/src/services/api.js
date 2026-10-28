@@ -147,8 +147,9 @@ export const apiService = {
         task.status = status;
         task.completionNotes = notes;
         task.wasteCollectedKg = wasteKg;
-        if (status === 'COMPLETED' && task.binIds) {
-          task.binIds.forEach(bId => {
+        if (status === 'COMPLETED') {
+          const binsToEmpty = [...(task.binIds || []), ...(task.binId ? [task.binId] : [])];
+          binsToEmpty.forEach(bId => {
             const b = mockBins.find(mb => mb.id === bId);
             if (b) {
               b.currentFillLevel = 0;

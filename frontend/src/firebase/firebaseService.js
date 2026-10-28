@@ -163,6 +163,13 @@ export const firebaseService = {
     } else if (status === 'COMPLETED') {
       updates.completedAt = new Date().toISOString();
       // Empty linked bins in Firestore
+      if (task.binId) {
+        try {
+          await this.emptyBin(task.binId);
+        } catch (e) {
+          console.error("Could not empty bin linked to task:", task.binId, e);
+        }
+      }
       if (task.binIds && Array.isArray(task.binIds)) {
         for (const bId of task.binIds) {
           try {
