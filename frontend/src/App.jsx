@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './pages/LoginPage';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -12,24 +13,26 @@ import { firebaseService } from './firebase/firebaseService';
 import { isFirebaseConfigured } from './firebase/config';
 
 function MainApp() {
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('admin-dashboard');
   const [bins, setBins] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [metrics, setMetrics] = useState({});
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Sync tab with role if switched
+  // Sync tab with role upon login/role change
   useEffect(() => {
+    if (!currentUser) return;
     if (currentUser.role === 'DRIVER') {
       setActiveTab('driver-portal');
-    } else if (currentUser.role === 'ADMIN' && activeTab === 'driver-portal') {
+    } else if (currentUser.role === 'ADMIN') {
       setActiveTab('admin-dashboard');
     }
   }, [currentUser]);
 
   // Initial load
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchData();
 
     // Setup real-time listeners if Firebase is configured
@@ -53,7 +56,7 @@ function MainApp() {
         unsubTasks();
       };
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const fetchData = async () => {
     const [fetchedBins, fetchedTasks, fetchedMetrics] = await Promise.all([
@@ -118,6 +121,14 @@ function MainApp() {
     fetchData();
   };
 
+  // If not logged in, show the Login Page
+  if (!isAuthenticated || !currentUser) {
+    return <LoginPage />;
+  }
+
+  const isAdmin = currentUser.role === 'ADMIN';
+  const isDriver = currentUser.role === 'DRIVER';
+
   const criticalCount = bins.filter(b => b.currentFillLevel >= 80).length;
   const activeTaskCount = tasks.filter(t => t.status !== 'COMPLETED').length;
 
@@ -131,7 +142,8 @@ function MainApp() {
       />
 
       <main style={{ flex: 1 }}>
-        {activeTab === 'admin-dashboard' && (
+        {/* Admin Dashboard & Management Views */}
+        {isAdmin && activeTab === 'admin-dashboard' && (
           <AdminDashboard
             metrics={metrics}
             bins={bins}
@@ -142,7 +154,7 @@ function MainApp() {
           />
         )}
 
-        {activeTab === 'bins' && (
+        {isAdmin && activeTab === 'bins' && (
           <BinManagementPage
             bins={bins}
             onAddBin={handleAddBin}
@@ -152,23 +164,25 @@ function MainApp() {
           />
         )}
 
-        {activeTab === 'driver-portal' && (
+        {isAdmin && activeTab === 'analytics' && (
+          <AnalyticsPage
+            metrics={metrics}
+          />
+        )}
+
+        {/* Driver Portal View */}
+        {isDriver && activeTab === 'driver-portal' && (
           <DriverTasksPage
             tasks={tasks}
             onUpdateTaskStatus={handleUpdateTaskStatus}
           />
         )}
 
+        {/* IoT Live Telemetry View (Available to Admin and Driver for navigation) */}
         {activeTab === 'iot-telemetry' && (
           <IoTMonitorPage
             bins={bins}
             onSimulateTick={handleSimulateTick}
-          />
-        )}
-
-        {activeTab === 'analytics' && (
-          <AnalyticsPage
-            metrics={metrics}
           />
         )}
       </main>

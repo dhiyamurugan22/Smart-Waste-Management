@@ -24,8 +24,8 @@ export const AdminDashboard = ({ metrics, bins, tasks, onEmptyBin, setActiveTab 
           <button onClick={() => setActiveTab('bins')} className="btn btn-secondary btn-sm">
             <Plus size={16} /> Deploy Bin
           </button>
-          <button onClick={() => setActiveTab('driver-portal')} className="btn btn-primary btn-sm">
-            <Truck size={16} /> Driver Tasks
+          <button onClick={() => setActiveTab('iot-telemetry')} className="btn btn-primary btn-sm">
+            <TrendingUp size={16} /> Live IoT Feeds
           </button>
         </div>
       </div>
